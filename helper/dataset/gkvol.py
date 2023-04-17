@@ -11,6 +11,6 @@ def garman_klass(row: pd.Series) -> float:
     return np.sqrt(0.5 * log_hl - (2 * np.log(2) - 1) * log_co)
 
 if __name__ == "__main__":
-    df = pd.read_csv("../../data/eth.csv")
+    df = pd.read_csv("../../data/btc.csv")
     df["sigma"] = df.apply(garman_klass, axis=1)
-    df.to_csv("../../data/eth.csv")
+    df.to_csv("../../data/btc.csv")

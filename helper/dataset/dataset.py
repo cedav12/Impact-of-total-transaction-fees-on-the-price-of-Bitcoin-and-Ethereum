@@ -39,6 +39,9 @@ def save_dataset(dataset: pd.DataFrame, path: str) -> None:
 
 if __name__ == "__main__":
     for coin in ["btc", "eth"]:
-        dataset = create_dataset(coin)
+        #dataset = create_dataset(coin)
+        dataset = pd.read_csv(os.path.join("../../data", coin + "_g.csv"))
+        feature = pd.read_csv(os.path.join("../../data", coin.upper() + f"/{coin}_transfers.csv"))
+        dataset = merge_datasets(dataset, feature)
         save_dataset(dataset, os.path.join("../../data", coin + ".csv"))
 
