@@ -34,4 +34,4 @@ def gtrends_concat(coin: str):
 
 
 if __name__ == "__main__":
-    gtrends_concat("btc")
+    gtrends_concat("eth")

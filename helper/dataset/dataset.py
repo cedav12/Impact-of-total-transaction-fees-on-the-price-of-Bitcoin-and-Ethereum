@@ -3,7 +3,7 @@ import pandas as pd
 
 
 def create_dataset(coin: str = "btc", control_dim: int = 2436) -> pd.DataFrame:
-    dir = os.path.join("data", coin.upper())
+    dir = os.path.join("../../data", coin.upper())
     combined_dataset = pd.DataFrame()
     for file in os.listdir(dir):
         df = pd.read_csv(os.path.join(dir, file))
@@ -27,6 +27,12 @@ def update_dataset(dataset: pd.DataFrame, new_feature: pd.DataFrame) -> pd.DataF
     return dataset
 
 
+def merge_datasets(dataset: pd.DataFrame, new_feature: pd.DataFrame) -> pd.DataFrame:
+    dataset = dataset.set_index("t")
+    new_feature = new_feature.set_index("t")
+    return dataset.join(new_feature, how="inner")
+
+
 def save_dataset(dataset: pd.DataFrame, path: str) -> None:
     dataset.to_csv(path)
 
@@ -34,4 +40,5 @@ def save_dataset(dataset: pd.DataFrame, path: str) -> None:
 if __name__ == "__main__":
     for coin in ["btc", "eth"]:
         dataset = create_dataset(coin)
-        save_dataset(dataset, os.path.join("data", coin + ".csv"))
+        save_dataset(dataset, os.path.join("../../data", coin + ".csv"))
+

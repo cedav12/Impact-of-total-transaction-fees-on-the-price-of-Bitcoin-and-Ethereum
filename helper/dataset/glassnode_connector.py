@@ -4,19 +4,19 @@ import pandas as pd
 import argparse
 import json
 
-from creds.secret import API_KEY
+from helper.creds.secret import API_KEY
 
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--API", default="https://api.glassnode.com/v1/metrics/", type=str, help="Specify API structure.")
-parser.add_argument("--asset", default="market/", type=str, help="Specify section.")
-parser.add_argument("--endpoint", default="price_usd_ohlc", type=str, help="Specify endpoint to load data from.")
-parser.add_argument("--metric", default="BTC", type=str, help="define metrics")
+parser.add_argument("--asset", default="transactions/", type=str, help="Specify section.")
+parser.add_argument("--endpoint", default="transfers_volume_median", type=str, help="Specify endpoint to load data from.")
+parser.add_argument("--metric", default="ETH", type=str, help="define metrics")
 parser.add_argument("--interval", default="24h", type=str, help="define granularity")
 parser.add_argument("--start", default="2016-01-01", type=str, help="The start of the interval")
 parser.add_argument("--end", default="2022-09-01", type=str, help="The end of the interval")
-parser.add_argument("--col_name", default=None, type=str, help="Name the new column.")
-parser.add_argument("--save_file", default=None, type=str,
+parser.add_argument("--col_name", default="transfers_med", type=str, help="Name the new column.")
+parser.add_argument("--save_file", default="eth_transfers.csv", type=str,
                     help="Specify the path where to save data.")
 """
 possibilities:
@@ -67,7 +67,7 @@ def main(args: argparse.Namespace) -> None:
 
     # save data
     if args.save_file is not None:
-        dir = os.path.join("data", args.metric)
+        dir = os.path.join("../../data", args.metric)
         data.to_csv(os.path.join(dir, args.save_file))
 
 
