@@ -10,9 +10,6 @@ library("foreign")
 library("xtable")
 library("stargazer")
 
-#IVREG package 'AER'
-# TODO: IVREG
-
 setwd("~/Impact-of-total-transaction-fees-on-the-price-of-Bitcoin-and-Ethereum")
 
 btc_data = read.csv("data/btc_data1.csv")
@@ -81,7 +78,6 @@ summary(lm(log(total_fees) ~ log(lagged_hash_rate_mean), data = btc_data))
 # We will build model of simultaneous equations. One equation for Price,
 # Second for Total transaction fees.
 
-# TODO: thing about logarhitmic transformation in case of sigma.
 price_equation = log(close) ~ log(total_fees) + log(hash_rate_mean) + 
   log(google_trends) + log(sigma) + log(sp500) + log(total_addresses)
 fee_equation = log(total_fees) ~ log(close) + log(sigma) + log(total_addresses) +
@@ -108,10 +104,9 @@ summary(btc_ols)
 # hausman.systemfit(btc_2sls,btc_3sls)
 hausman.systemfit(btc_2sls,btc_ols) # zamitneme consistenci ols
 
-# Final model
-model = btc_2sls
+
 close_eq = ivreg(log(close) ~ log(total_fees) + log(hash_rate_mean) + 
-                log(google_trends) + log(sp500) |#+ log(total_addresses) | 
+                log(google_trends) + log(sp500) |
   log(sp500) + log(gold) + log(vix) + 
   total_supply + log(transfers_med), data = btc_data)
 
@@ -120,88 +115,20 @@ fee_eq = ivreg(log(total_fees) ~ log(close) + log(sigma) + log(total_addresses)
                  total_supply + log(transfers_med) + log(sigma) +
                  log(total_addresses), data = btc_data)
 
-# TODO: mean fees
-close_eq_mean = ivreg(log(close) ~ log(mean_fees) + log(hash_rate_mean) + 
-                   log(google_trends) + log(sigma) + log(sp500) + log(total_addresses) | 
-                   log(sp500) + log(gold) + log(vix) + 
-                   total_supply + log(transfers_med) + log(sigma) +
-                   log(total_addresses), data = btc_data)
-
-fee_eq_mean = ivreg(log(mean_fees) ~ log(close) + log(sigma) + log(total_addresses) +
-                 log(google_trends) | log(sp500) + log(gold) + log(vix) + 
-                 total_supply + log(transfers_med) + log(sigma) +
-                 log(total_addresses), data = btc_data)
-
-
 # Test endogeneity - Durbin-Wu-Hausman
-# Mame stejny poccet instrumentu jako endog. var - nemusime delat sargan test, 
-# ten pouzivame, kdyz mame vic instrumentu.
 summary(close_eq, diagnostic=TRUE)
 summary(fee_eq, diagnostic=TRUE)
-
-summary(close_eq_mean, diagnostic=TRUE)
-summary(fee_eq_mean, diagnostic=TRUE)
-
-# Firstly, we should specify OLS structural equation, without endogeneous variables
-# included
-dwh_close = lm(log(close) ~ log(sigma) + log(sp500)  +   log(total_addresses) +
-                  log(gold) + log(vix) +  total_supply +  log(transfers_med),
-                data = btc_data)
-dwh_fees = lm(log(total_fees) ~ log(sigma) + log(total_addresses) + log(sp500) +
-                log(gold) + log(vix) + total_supply + log(transfers_med),
-              data = btc_data)
-# TODO: ??IVreg ma dwh test defaultne
-dwh_searches = lm(log(google_trends) ~ log(sp500) + log(gold) + log(vix) + total_supply + 
-                    log(transfers_med) + log(sigma) + log(total_addresses), data = btc_data)
-dwh_hashrate = lm(log(hash_rate_mean) ~ log(sp500) + log(gold) + log(vix) + total_supply + 
-                    log(transfers_med) + log(sigma) + log(total_addresses), data = btc_data)
-
-btc_data$close_res = dwh_close$residuals
-btc_data$fees_res = dwh_fees$residuals
-btc_data$searches_res = dwh_searches$residuals
-btc_data$hashrate_res = dwh_hashrate$residuals
-
-# Secondly, regress structural equation with residuals of endogeneous variables.
-dwh_close_structural <- lm(log(close) ~ log(sigma) + log(sp500) + 
-                             log(total_addresses) +
-                             log(total_fees) + log(google_trends) +
-                             log(hash_rate_mean) + fees_res + searches_res +
-                             hashrate_res, data = btc_data)
-summary(dwh_close_structural)
-linearHypothesis(dwh_close_structural, c("fees_res = 0", "searches_res = 0",
-                                         "hashrate_res = 0"))
-
-dwh_fees_structural <- lm(log(total_fees) ~ log(sigma) + log(total_addresses) +
-                            log(close) + log(google_trends) +
-                            close_res + searches_res, data = btc_data)
-summary(dwh_fees_structural)
-linearHypothesis(dwh_fees_structural, c("close_res = 0", "searches_res = 0"))
-
-# negative slope (bullruns!) - subpopulace, pripadne rozsekat.
-ggplot(data=btc_data, aes(log(close), log(total_fees))) +
-  geom_point() +
-  geom_smooth(method = "lm", se = FALSE, color = "red")
-
-ggplot(data=btc_data, aes(t, log(total_fees)))+
-  geom_line()
-
 
 ## Test unit root of residuals
 # Augmented Dickey-Fuller test
 
-#nulova hypothesa = unit_root
+#H_0 = unit_root
 adf.test(close_eq$residuals)
 adf.test(fee_eq$residuals)
 
 # KPSS test
 kpss.test(close_eq$residuals)
 kpss.test(fee_eq$residuals)
-# Nezamitneme nestacionaritu, ale alternativa neni unit_root. Je tu silna 
-# autocorrelace - autocorrelation robust unit root
-
-# Ambiguous results - adftest rejecet non-stacionarity and kpss rejects stacionarity.
-# -> OK
-
 
 ## Test heteroscedasticity
 
@@ -223,15 +150,9 @@ shapiro.test(close_eq$residuals)
 shapiro.test(fee_eq$residuals)
 
 
-# TODO: heteroscedasticity and autocorrelation errors.
+# heteroscedasticity and autocorrelation errors.
 coeftest(close_eq, vcov = vcovHAC(close_eq, type="HC3"))
-# OK - nechat
 coeftest(fee_eq, vcov = vcovHAC(fee_eq, type="HC3"))
-# opet nechat - nesignificantni promenne vyuzivame k testovani hypotez.
-# close zaporny trend - zkusit pouzit mean/med fee
-
-coeftest(close_eq_mean, vcov = vcovHAC(close_eq_mean, type="HC3"))
-coeftest(fee_eq_mean, vcov = vcovHAC(fee_eq_mean, type="HC3"))
 
 
 ### ETHEREUM
@@ -247,9 +168,6 @@ eth_data[which.min(eth_data$sigma), c("open", "high", "low", "close")]
 # We use the same approach as for sigma:
 eth_data$sigma[which.min(eth_data$sigma)] = sort(eth_data$sigma)[2]
 
-
-# TODO: think about whether it is better to use total_fees instead of gasprice.
-# TODO: DONE: korekce close rovnice odebrani hashratemean + sp500 + btc -> OK
 close_eq_eth = ivreg(log(close) ~ log(total_fees) + log(btc) + 
                    log(google_trends) + log(sigma) + log(total_addresses) | log(gold) + log(vix) + 
                    total_supply + log(transfers_med) + log(sigma) + log(btc) +
@@ -273,11 +191,6 @@ adf.test(fee_eq_eth$residuals)
 # KPSS test
 kpss.test(close_eq_eth$residuals)
 kpss.test(fee_eq_eth$residuals)
-# Nezamitneme nestacionaritu, ale alternativa neni unit_root. Je tu silna 
-# autocorrelace - autocorrelation robust unit root
-
-# Ambiguous results - adftest rejecet non-stacionarity and kpss rejects stacionarity.
-# -> OK
 
 
 ## Test heteroscedasticity
@@ -303,15 +216,12 @@ shapiro.test(fee_eq_eth$residuals)
 # TODO: heteroscedasticity and autocorrelation errors.
 coeftest(close_eq_eth, vcov = vcovHAC(close_eq_eth, type="HC3"))
 coeftest(fee_eq_eth, vcov = vcovHAC(fee_eq_eth, type="HC3"))
-# Note negative coef of close in the second equation.
-
-ggplot(data=eth_data, aes(log(close), log(total_fees))) +
-  geom_point()
 
 
 # In ETH there is visible positive trend between fees and close. On the other 
 # hand, in case of BTC it seems that several subtrends occur, In order to explore
 # this phenomenom, we will divide the whole interval into several subintervals
+
 ggplot(data=btc_data, aes(X, log(close))) +
   geom_point() +
   geom_vline(xintercept = c(750, 1500), color = "red")
@@ -362,8 +272,7 @@ dsummary = function(model){
   print(summary(model, diagnostic=TRUE))
 }
 
-##### BTC  1 
-# TODO: kdyz odebereme i sp500, prestane vychazet wu-hausman.
+##### BTC 1 
 btc_1_cf = as.formula(log(close) ~ log(total_fees) + log(hash_rate_mean)+
                         log(google_trends) | log(sp500) + log(sigma)+
                         log(gold) + log(vix) + 
@@ -393,17 +302,11 @@ dwtest(sub_btc_1$fee_eq, data = sub_btc_1$data)
 shapiro.test(sub_btc_1$close_eq$residuals)
 shapiro.test(sub_btc_1$fee_eq$residuals)
 
-# TODO: odebrat nesignifikantni promenny, pak muze davat smysl sargan - je pak 
-# otazka zda odebrat exogenni promenne. Endogenni vyhazujeme, exogenni jako instrument.
-# promenne ktere nas zajimaji pripadne nechat( fees, sigma)
+
 coeftest(sub_btc_1$close_eq, vcov = vcovHAC(sub_btc_1$close_eq, type="HC3"))
 coeftest(sub_btc_1$fee_eq, vcov = vcovHAC(sub_btc_1$fee_eq, type="HC3"))
 
 ##### BTC 2
-
-# zlobi feeckova rovnice - zkusime odebrat google_trends.
-# TODO: stale adf test neprochazi - total_addresses silene nesignificantni - co s tim.
-# dela problem konec bullrunu 2017.
 
 btc_2_fee = as.formula(log(total_fees) ~ log(close) + log(sigma) + log(total_addresses)|
                          log(gold) + log(vix) + log(transfers_med)+
@@ -414,16 +317,14 @@ btc_2_cf = as.formula(log(close) ~ log(total_fees) +
                         log(sp500) + log(gold) + log(vix) + 
                         total_supply + log(transfers_med) + log(sigma) +
                         log(total_addresses))
-# TODO: OLS
-#btc_2_fee = as.formula(log(total_fees) ~ log(close) + log(sigma) + log(total_addresses) + log(google_trends))
+
+
 sub_btc_2 = analyze_subinterval("btc", 751, 1500, btc_2_cf, btc_2_fee)
-#sub_btc_2$fee_eq = lm(btc_2_fee, data = btc_data[751:1500, ])
 dsummary(sub_btc_2$close_eq)
 dsummary(sub_btc_2$fee_eq)
 
 ##R2 coef
 cor(predict(sub_btc_2$close_eq), sub_btc_2$data$close)^2
-
 
 
 adf.test(sub_btc_2$close_eq$residuals)
@@ -476,7 +377,6 @@ shapiro.test(sub_btc_3$fee_eq$residuals)
 coeftest(sub_btc_3$close_eq, vcov = vcovHAC(sub_btc_3$close_eq, type="HC3"))
 coeftest(sub_btc_3$fee_eq, vcov = vcovHAC(sub_btc_3$fee_eq, type="HC3"))
 
-# everything ok
 
 ### ETH
 ggplot(data=eth_data, aes(X, log(close))) +
@@ -524,7 +424,6 @@ eth_2_fee = as.formula(log(total_fees) ~ log(close) + log(sigma) + log(total_add
                          log(total_addresses))
 
 sub_eth_2 = analyze_subinterval("eth", 751, 1500, eth_2_cf, eth_2_fee)
-#sub_eth_2$fee_eq = lm(eth_2_fee, data = eth_data[751:1500, ])
 
 dsummary(sub_eth_2$close_eq)
 dsummary(sub_eth_2$fee_eq)
@@ -546,13 +445,10 @@ shapiro.test(sub_eth_2$fee_eq$residuals)
 
 coeftest(sub_eth_2$close_eq, vcov = vcovHAC(sub_eth_2$close_eq, type="HC3"))
 coeftest(sub_eth_2$fee_eq, vcov = vcovHAC(sub_eth_2$fee_eq, type="HC3"))
-# TODO: problem s fee rovnici - neprochazi wu-hausman & adf rejected close
 
 
 ##### ETH 3 
 
-# FEE equation OK - horsi close - nevychazi hausman, kdyz uberu hashrate a total_add.
-# Kdyz odeberu jeste sigmu tak je vsechno OK.
 eth_3_cf = as.formula(log(close) ~ log(total_fees) + log(hash_rate_mean) + 
                       log(sigma) + log(sp500) +
                       log(btc)| log(sp500) + log(gold) + log(vix) + 
@@ -610,3 +506,19 @@ eth_data$close[dim(btc_data)[1]] / eth_data$close[1501]
 mean(btc_data$sigma[751:dim(btc_data)[1]])
 mean(eth_data$sigma[751:dim(btc_data)[1]])
 
+
+### Mean google trend effect accross intervals
+mean(btc_data$google_trends[1:750])
+mean(btc_data$google_trends[751:1500])
+mean(btc_data$google_trends[1501:dim(btc_data)[1]])
+
+#sd
+sd(btc_data$google_trends[1:750])
+sd(btc_data$google_trends[751:1500])
+sd(btc_data$google_trends[1501:dim(btc_data)[1]])
+
+#max
+max(btc_data$google_trends[1:750])
+max(btc_data$google_trends[751:1500])
+max(btc_data$google_trends[1501:dim(btc_data)[1]])
+plot(btc_data$google_trends)
