@@ -5,4 +5,4 @@ The aim of this thesis is to explore the price dynamics of Bitcoin and Ethereum 
 
 ___
 
-temporary link: https://dspace.cuni.cz/handle/20.500.11956/184961
+permanent link: https://dspace.cuni.cz/handle/20.500.11956/184961
